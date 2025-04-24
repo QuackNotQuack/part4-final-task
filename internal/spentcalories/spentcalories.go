@@ -21,18 +21,25 @@ const (
 func parseTraining(data string) (int, string, time.Duration, error) {
 	parts := strings.Split(data, ",")
 	if len(parts) != 3 {
-		return 0, "", 0, fmt.Errorf("ошибка: неверный формат строки")
+		return 0, "", 0, fmt.Errorf("invalid format")
 	}
 
-	steps, err := strconv.Atoi(strings.TrimSpace(parts[0]))
-	if err != nil || steps <= 0 {
-		return 0, "", 0, fmt.Errorf("ошибка: некорректное значение количества шагов")
+	steps, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return 0, "", 0, fmt.Errorf("invalid step count: %v", err)
+	}
+	if steps <= 0 {
+		return 0, "", 0, fmt.Errorf("step count must be positive")
 	}
 
-	activity := strings.TrimSpace(parts[1])
-	duration, err := time.ParseDuration(strings.TrimSpace(parts[2]))
-	if err != nil || duration <= 0 {
-		return 0, "", 0, fmt.Errorf("ошибка: некорректное значение времени")
+	activity := parts[1]
+
+	duration, err := time.ParseDuration(parts[2])
+	if err != nil {
+		return 0, "", 0, fmt.Errorf("invalid duration: %v", err)
+	}
+	if duration <= 0 {
+		return 0, "", 0, fmt.Errorf("duration must be positive")
 	}
 
 	return steps, activity, duration, nil
@@ -56,7 +63,7 @@ func meanSpeed(steps int, height float64, duration time.Duration) float64 {
 // Возвращает ошибку, если входные параметры некорректны.
 func RunningSpentCalories(steps int, weight, height float64, duration time.Duration) (float64, error) {
 	if steps <= 0 || weight <= 0 || height <= 0 || duration <= 0 {
-		return 0, fmt.Errorf("ошибка: некорректные входные данные")
+		return 0, fmt.Errorf("invalid input: all values must be positive")
 	}
 	speed := meanSpeed(steps, height, duration)
 	durationMinutes := duration.Minutes()
@@ -69,7 +76,7 @@ func RunningSpentCalories(steps int, weight, height float64, duration time.Durat
 // с учётом корректирующего коэффициента. Возвращает ошибку при неверных данных.
 func WalkingSpentCalories(steps int, weight, height float64, duration time.Duration) (float64, error) {
 	if steps <= 0 || weight <= 0 || height <= 0 || duration <= 0 {
-		return 0, fmt.Errorf("ошибка: некорректные входные данные")
+		return 0, fmt.Errorf("invalid input: all values must be positive")
 	}
 	speed := meanSpeed(steps, height, duration)
 	minutes := duration.Minutes()
@@ -92,16 +99,14 @@ func TrainingInfo(data string, weight, height float64) (string, error) {
 	switch activity {
 	case "Бег":
 		calories, err = RunningSpentCalories(steps, weight, height, duration)
-		if err != nil {
-			return "", err
-		}
 	case "Ходьба":
 		calories, err = WalkingSpentCalories(steps, weight, height, duration)
-		if err != nil {
-			return "", err
-		}
 	default:
-		return "", fmt.Errorf("ошибка: неизвестный тип тренировки")
+		err = fmt.Errorf("неизвестный тип тренировки: %s", activity)
+	}
+
+	if err != nil {
+		return "", err
 	}
 
 	return fmt.Sprintf(
